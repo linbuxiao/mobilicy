@@ -1,10 +1,20 @@
 package mobilicy
 
-import tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+import (
+	"context"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+)
 
 type Ctx struct {
-	bot    *tgbotapi.BotAPI
-	update tgbotapi.Update
+	route   *Route
+	bot     *tgbotapi.BotAPI
+	update  tgbotapi.Update
+	context context.Context
+}
+
+type Command struct {
+	Command string
+	Arg     string
 }
 
 func (c *Ctx) Update() tgbotapi.Update {
@@ -21,6 +31,20 @@ func (c *Ctx) FromChatID() int64 {
 
 func (c *Ctx) FromMessageID() int {
 	return c.update.Message.MessageID
+}
+
+func (c *Ctx) Context() context.Context {
+	return c.context
+}
+
+func (c *Ctx) Command() *Command {
+	if !c.update.Message.IsCommand() {
+		return nil
+	}
+	return &Command{
+		Command: c.update.Message.Command(),
+		Arg:     c.update.Message.CommandArguments(),
+	}
 }
 
 func (c *Ctx) String(s string, reply bool) {
