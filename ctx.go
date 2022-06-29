@@ -19,7 +19,7 @@ type Command struct {
 	Arg     string
 }
 
-func (c *Ctx) Update() tgbotapi.Update {
+func (c *Ctx) GetUpdate() tgbotapi.Update {
 	return c.update
 }
 
