@@ -5,6 +5,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/panjf2000/ants/v2"
 	"log"
+	"net/http"
 )
 
 type Method int
@@ -30,10 +31,11 @@ type App struct {
 }
 
 type Config struct {
-	Token       string
-	BotDebug    bool
-	WorkPoolCap int
-	ErrHandler  ErrHandler
+	Token         string
+	BotDebug      bool
+	WorkPoolCap   int
+	ErrHandler    ErrHandler
+	EnableWebHook bool
 }
 
 func New(config Config) *App {
@@ -86,15 +88,21 @@ func (a *App) addRoute(m Method, r *Route) {
 }
 
 func (a *App) Run() error {
+	var updates tgbotapi.UpdatesChannel
 	bot, err := tgbotapi.NewBotAPI(a.config.Token)
 	if err != nil {
 		return err
 	}
 	bot.Debug = a.config.BotDebug
 	a.bot = bot
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
-	updates := bot.GetUpdatesChan(u)
+	if a.config.EnableWebHook {
+		updates = bot.ListenForWebhook("/" + bot.Token)
+		go http.ListenAndServe(":8080", nil)
+	} else {
+		u := tgbotapi.NewUpdate(0)
+		u.Timeout = 60
+		updates = bot.GetUpdatesChan(u)
+	}
 	return a.serve(updates)
 }
 
