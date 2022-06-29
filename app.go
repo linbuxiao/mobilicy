@@ -128,6 +128,7 @@ func (a *App) serveFunc(i interface{}) {
 	case MethodCommand:
 		for _, route := range a.routeStack[m] {
 			if route.match(u.Message.Command()) {
+				ctx.route = route
 				if err := route.Handlers[0](ctx); err != nil {
 					a.config.ErrHandler(ctx, err)
 				}
