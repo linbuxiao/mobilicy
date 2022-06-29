@@ -8,7 +8,7 @@ type Router interface {
 type Route struct {
 	Method   Method
 	Path     string
-	Handlers []Handler
+	Handlers []func(*Ctx) error
 }
 
 func (r *Route) match(path string) bool {
