@@ -1,6 +1,7 @@
 package mobilicy
 
 import (
+	"context"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/panjf2000/ants/v2"
 	"log"
@@ -114,8 +115,10 @@ func (a *App) serve(updates tgbotapi.UpdatesChannel) error {
 func (a *App) serveFunc(i interface{}) {
 	u, _ := i.(tgbotapi.Update)
 	ctx := &Ctx{
-		bot:    a.bot,
-		update: u,
+		bot:     a.bot,
+		update:  u,
+		context: context.Background(),
+		locals:  make(map[string]interface{}),
 	}
 	var m Method
 	if u.Message.IsCommand() {
