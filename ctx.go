@@ -6,10 +6,12 @@ import (
 )
 
 type Ctx struct {
-	route   *Route
-	bot     *tgbotapi.BotAPI
-	update  tgbotapi.Update
-	context context.Context
+	route        *Route
+	bot          *tgbotapi.BotAPI
+	update       tgbotapi.Update
+	context      context.Context
+	indexHandler int
+	locals       map[string]interface{}
 }
 
 type Command struct {
@@ -35,6 +37,22 @@ func (c *Ctx) FromMessageID() int {
 
 func (c *Ctx) Context() context.Context {
 	return c.context
+}
+
+func (c *Ctx) Next() (err error) {
+	c.indexHandler++
+	if c.indexHandler < len(c.route.Handlers) {
+		err = c.route.Handlers[c.indexHandler](c)
+	}
+	return err
+}
+
+func (c *Ctx) Locals(key string, value ...interface{}) interface{} {
+	if len(value) == 0 {
+		return c.locals[key]
+	}
+	c.locals[key] = value[0]
+	return value[0]
 }
 
 func (c *Ctx) Command() *Command {

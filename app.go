@@ -2,7 +2,6 @@ package mobilicy
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/hashicorp/go-multierror"
 	"github.com/panjf2000/ants/v2"
 	"log"
 )
@@ -23,9 +22,10 @@ func defaultErrorHandler(ctx *Ctx, err error) {
 }
 
 type App struct {
-	stack  map[Method][]*Route
-	config Config
-	bot    *tgbotapi.BotAPI
+	middleware []Handler
+	routeStack map[Method][]*Route
+	config     Config
+	bot        *tgbotapi.BotAPI
 }
 
 type Config struct {
@@ -50,7 +50,7 @@ func New(config Config) *App {
 }
 
 func (a *App) init() {
-	a.stack = make(map[Method][]*Route)
+	a.routeStack = make(map[Method][]*Route)
 }
 
 func (a *App) Command(path string, handlers ...Handler) Router {
@@ -61,18 +61,27 @@ func (a *App) Add(method Method, path string, handlers ...Handler) Router {
 	return a.register(method, path, handlers...)
 }
 
+func (a *App) Use(handler Handler) {
+	a.middleware = append(a.middleware, handler)
+	for _, x := range a.routeStack {
+		for _, y := range x {
+			y.Handlers = append(y.Handlers, handler)
+		}
+	}
+}
+
 func (a *App) register(method Method, path string, handlers ...Handler) Router {
 	r := Route{
 		Method:   method,
 		Path:     path,
-		Handlers: handlers,
+		Handlers: append(a.middleware, handlers...),
 	}
 	a.addRoute(method, &r)
 	return a
 }
 
 func (a *App) addRoute(m Method, r *Route) {
-	a.stack[m] = append(a.stack[m], r)
+	a.routeStack[m] = append(a.routeStack[m], r)
 }
 
 func (a *App) Run() error {
@@ -99,7 +108,6 @@ func (a *App) serve(updates tgbotapi.UpdatesChannel) error {
 			log.Println(err)
 		}
 	}
-	wp.Waiting()
 	return nil
 }
 
@@ -115,17 +123,12 @@ func (a *App) serveFunc(i interface{}) {
 	}
 	switch m {
 	case MethodCommand:
-		for _, route := range a.stack[m] {
+		for _, route := range a.routeStack[m] {
 			if route.match(u.Message.Command()) {
-				var eg error
-				for _, handler := range route.Handlers {
-					if err := handler(ctx); err != nil {
-						eg = multierror.Append(eg, err)
-					}
+				if err := route.Handlers[0](ctx); err != nil {
+					a.config.ErrHandler(ctx, err)
 				}
-				if eg != nil {
-					a.config.ErrHandler(ctx, eg)
-				}
+				break
 			}
 		}
 	}
