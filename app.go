@@ -36,6 +36,7 @@ type Config struct {
 	WorkPoolCap   int
 	ErrHandler    ErrHandler
 	EnableWebHook bool
+	Logger        tgbotapi.BotLogger
 }
 
 func New(config Config) *App {
@@ -53,6 +54,9 @@ func New(config Config) *App {
 }
 
 func (a *App) init() {
+	if a.config.Logger != nil {
+		tgbotapi.SetLogger(a.config.Logger)
+	}
 	a.routeStack = make(map[Method][]*Route)
 }
 
