@@ -96,7 +96,7 @@ func (a *App) Run() error {
 	bot.Debug = a.config.BotDebug
 	a.bot = bot
 	if a.config.EnableWebHook {
-		updates = bot.ListenForWebhook("/" + bot.Token)
+		updates = bot.ListenForWebhook("/")
 		go http.ListenAndServe(":8080", nil)
 	} else {
 		u := tgbotapi.NewUpdate(0)
